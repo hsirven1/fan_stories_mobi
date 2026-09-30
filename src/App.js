@@ -2106,11 +2106,23 @@ function LoadingScreen() {
 // ---------------------------------------------------------------------------
 // Story engine
 // ---------------------------------------------------------------------------
-// Transition: plain crossfade, one slide at a time (AnimatePresence mode="wait").
+// Transition: direction-aware horizontal snap (dir 1 = forward, -1 = back). The incoming
+// slide stacks above the outgoing one; both carry an opaque background.
+const SLIDE_TRANSITION = { duration: 0.35, ease: [0.32, 0.72, 0, 1] };
 const slideVariants = {
-  enter: { opacity: 0 },
-  center: { opacity: 1, transition: { duration: 0.2, ease: "easeOut" } },
-  exit: { opacity: 0, transition: { duration: 0.15, ease: "easeIn" } },
+  enter: ({ dir, reduced }) => (reduced
+    ? { opacity: 0, x: 0, scale: 1 }
+    : { x: dir > 0 ? "100%" : "-100%", scale: 0.96, opacity: 0 }),
+  center: ({ reduced }) => ({
+    x: 0,
+    scale: 1,
+    opacity: 1,
+    zIndex: 20,
+    transition: reduced ? { duration: 0.2 } : SLIDE_TRANSITION,
+  }),
+  exit: ({ dir, reduced }) => (reduced
+    ? { opacity: 0, zIndex: 19, transition: { duration: 0.2, zIndex: { duration: 0 } } }
+    : { x: dir > 0 ? "-30%" : "30%", opacity: 0, zIndex: 19, transition: { ...SLIDE_TRANSITION, zIndex: { duration: 0 } } }),
 };
 
 // Remaining ms until the slide's last finite animation ends, or null if it has none.
@@ -2127,7 +2139,7 @@ function measureAnimationEnd(el, registeredMs) {
   return end >= 0 ? end : null;
 }
 
-function StorySlide({ reduced, onTiming, style, children }) {
+function StorySlide({ custom, reduced, onTiming, style, children }) {
   const elRef = useRef(null);
   const registered = useRef([]);
   const timing = useMemo(() => ({ register: (ms) => registered.current.push(ms) }), []);
@@ -2142,6 +2154,7 @@ function StorySlide({ reduced, onTiming, style, children }) {
     <SlideTimingContext.Provider value={timing}>
       <motion.div
         ref={elRef}
+        custom={custom}
         variants={slideVariants}
         initial="enter"
         animate="center"
@@ -2247,6 +2260,7 @@ function ShareImageFrame({ slide, frameRef }) {
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [idx, setIdx] = useState(0);
+  const [dir, setDir] = useState(1);
   const [paused, setPaused] = useState(false);
   const [timing, setTiming] = useState({ idx: -1, ms: null });
   const reduced = useStill();
@@ -2349,6 +2363,7 @@ export default function App() {
 
   const goTo = (nextIdx) => {
     if (loading || nextIdx < 0 || nextIdx >= allSlides.length || nextIdx === idx) return;
+    setDir(nextIdx > idx ? 1 : -1);
     setIdx(nextIdx);
   };
   goToRef.current = goTo;
@@ -2441,6 +2456,7 @@ export default function App() {
   };
 
   const onColoredBg = current.bg !== WHITE;
+  const slideCustom = { dir, reduced };
 
   return (
     <div style={{ minHeight: "100vh", background: "#060606", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -2514,9 +2530,10 @@ export default function App() {
             </AnimatePresence>
 
             {!loading && (
-            <AnimatePresence initial={false} mode="wait">
+            <AnimatePresence initial={false} custom={slideCustom}>
                 <StorySlide
                   key={idx}
+                  custom={slideCustom}
                   reduced={reduced}
                   onTiming={(ms) => setTiming({ idx, ms })}
                   style={{
