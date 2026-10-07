@@ -6,91 +6,102 @@ import html2canvas from "html2canvas";
 // ---------------------------------------------------------------------------
 // Brand palette
 // ---------------------------------------------------------------------------
-const RED = "#EE3124";
+const BRAND_RED = "#DA291C"; // Rogers red
+const BRAND_RED_DARK = "#A8201A";
 const BLACK = "#0A0A0A";
-// E-bike accent: used only on the electric slide.
-const ELECTRIC_BLUE = "#1F5BD6";
-const ELECTRIC_NAVY = "#0B1530";
+// E-bike accent (Simplii Financial): used only on the electric slide.
+const ELECTRIC_GREEN = "#B3FF00";
+const ELECTRIC_DEEP = "#0B2A1A";
 const WHITE = "#FFFFFF";
 const BORDER = "#E0E0E0";
 const LABEL_GRAY = "rgba(10,10,10,0.55)";
 
-const HEAD = "'Nunito', sans-serif"; // headlines — closest to BIXI's GT Maru
-const BODY = "'Inter', sans-serif"; // body copy
-const BRAND = "'Space Grotesk', sans-serif"; // sponsor wordmark only
+const greenA = (a) => `rgba(179,255,0,${a})`;
+
+// Mobi type: Gotham for headings (Montserrat stands in where Gotham isn't installed), Arial for body/UI.
+const HEAD = "'Gotham', 'Montserrat', Arial, sans-serif";
+const BODY = "Arial, Helvetica, sans-serif";
+// Gotham is licensed, so it's only picked up from fonts installed on the device.
+const GOTHAM_WEIGHTS = [
+  ["Thin", 100], ["Light", 200], ["Book", 300], ["Medium", 500], ["Bold", 700], ["Black", 800], ["Ultra", 900],
+];
+const GOTHAM_FACES = GOTHAM_WEIGHTS.map(([name, weight]) =>
+  `@font-face { font-family: 'Gotham'; font-weight: ${weight}; font-display: swap; src: local('Gotham ${name}'), local('Gotham-${name}'); }`
+).join("\n");
 
 // ---------------------------------------------------------------------------
-// Hardcoded demo data — one rider's 2026 in BIXI
+// Hardcoded demo data — one rider's 2026 on Mobi
 // ---------------------------------------------------------------------------
 const RECAP = {
-  rides: 187,
-  km: 743,
-  electricRides: 41,
-  co2Saved: 89, // kg
-  neighborhood: "Plateau-Mont-Royal",
-  bestMonth: "Juillet",
-  bestMonthRides: 47,
-  style: "quotidien",
-  minutesSaved: 2240,
-  ridingMinutes: 3975,
-  stationsUsed: 34,
-  favoriteStation: "Station Parc Jeanne-Mance",
-  stationRides: 47,
+  rides: 164,
+  km: 612,
+  electricRides: 58,
+  co2Saved: 74, // kg
+  neighborhood: "Mount Pleasant",
+  bestMonth: "August",
+  bestMonthRides: 31,
+  style: "daily",
+  minutesSaved: 1960,
+  hoursRiding: 54,
+  stationsUsed: 29,
+  favoriteStation: "Science World",
+  stationRides: 38,
 };
 
 // Derived numbers
-const electricPct = Math.round((RECAP.electricRides / RECAP.rides) * 100); // 22%
-const ridesPerWeek = (RECAP.rides / 52).toFixed(1).replace(".", ","); // "3,6"
+const electricPct = Math.round((RECAP.electricRides / RECAP.rides) * 100); // 35%
+const ridesPerWeek = (RECAP.rides / 52).toFixed(1); // "3.2"
 const treesEquiv = Math.max(1, Math.round(RECAP.co2Saved / 21)); // ~1 tree ≈ 21kg CO₂ / yr → 4
 
+// Mobi runs year-round: all 12 months (sums to RECAP.rides).
 const SEASON_BARS = [
-  { month: "Avr", value: 12 },
-  { month: "Mai", value: 28 },
-  { month: "Juin", value: 35 },
-  { month: "Juil", value: 47, highlight: true },
-  { month: "Août", value: 41 },
-  { month: "Sep", value: 32 },
-  { month: "Oct", value: 18 },
-  { month: "Nov", value: 8 },
+  { month: "Jan", value: 4 },
+  { month: "Feb", value: 5 },
+  { month: "Mar", value: 8 },
+  { month: "Apr", value: 12 },
+  { month: "May", value: 17 },
+  { month: "Jun", value: 22 },
+  { month: "Jul", value: 26 },
+  { month: "Aug", value: 31, highlight: true },
+  { month: "Sep", value: 19 },
+  { month: "Oct", value: 11 },
+  { month: "Nov", value: 6 },
+  { month: "Dec", value: 3 },
 ];
-const SEASON_BAR_MAX = 47;
+const SEASON_BAR_MAX = 31;
 
 // ---------------------------------------------------------------------------
-// Rider profiles — French titles + templated French descriptions
+// Rider profiles — titles + templated descriptions
 // ---------------------------------------------------------------------------
 const PROFILES = {
   regular: {
-    title: "L'ABONNÉ FIDÈLE",
-    desc: (d) => `${d.rides} trajets cette année — l'abonnement, c'est votre deuxième maison. Le ${d.neighborhood}, votre point de départ habituel.`,
-    shareDesc: "Toujours là, toujours prêt. Le BIXI fait partie de votre routine.",
+    title: "THE LOYAL MEMBER",
+    desc: (d) => `${d.rides} rides this year. Your pass is your second home, and ${d.neighborhood} is where it all starts.`,
   },
-  quotidien: {
-    title: "LE BIXISTE DU QUOTIDIEN",
-    desc: (d) => `Beau temps, mauvais temps, le BIXI fait partie de votre routine. ${d.rides} trajets, ça ne ment pas.`,
-    shareDesc: "Beau temps, mauvais temps, le BIXI fait partie de votre routine.",
+  daily: {
+    title: "THE DAILY RIDER",
+    desc: (d) => `Rain or shine, Mobi is part of your routine. ${d.rides} rides don't lie.`,
   },
   explorer: {
-    title: "L'EXPLORATEUR",
-    desc: (d) => `${d.stationsUsed} stations découvertes, ${d.km} km au compteur. Montréal n'a plus de secrets pour vous.`,
-    shareDesc: "Chaque trajet, un nouveau quartier. Montréal n'a plus de secrets pour vous.",
+    title: "THE EXPLORER",
+    desc: (d) => `${d.stationsUsed} stations discovered, ${d.km} km on the clock. Vancouver has no secrets left for you.`,
   },
-  bixiste: {
-    title: "LE BIXISTE",
+  local: {
+    title: "THE LOCAL",
     desc: (d) =>
-      `Un vrai du ${d.neighborhood}. ${d.rides} trajets, dont ${d.electricRides} en électrique, et ${d.km} km au compteur. ${d.bestMonth} a été votre mois le plus actif.`,
-    shareDesc: "187 trajets. Vous n'avez pas besoin d'explication.",
+      `A true ${d.neighborhood} regular. ${d.rides} rides, ${d.electricRides} of them electric, and ${d.km} km on the clock. ${d.bestMonth} was your most active month.`,
   },
   speedster: {
-    title: "LE SPEEDSTER",
-    desc: (d) => `${d.minutesSaved} minutes gagnées sur la route. Vous ne perdez pas de temps — ${d.rides} trajets, toujours l'œil sur l'horloge.`,
-    shareDesc: "Vite, efficace, sans détour. Le chrono ne ment pas.",
+    title: "THE SPEEDSTER",
+    desc: (d) => `${d.minutesSaved} minutes saved on the road. ${d.rides} rides, always with an eye on the clock.`,
   },
 };
 
 const PROFILE = PROFILES[RECAP.style];
 
-const SHARE_FILENAME = "votre-2026-en-bixi.png";
-const JOIN_CODE = "BIXISTE2026";
+const SHARE_FILENAME = "your-2026-on-mobi.png";
+const PROMO_CODE = "MOBI2027";
+const JOIN_CODE = PROMO_CODE;
 
 // Share images: 9:16, exported at 1080×1920.
 const SHARE_IMG_W = 396;
@@ -198,7 +209,7 @@ function useCountUp(end) {
 // Tabular digits + a min-width sized to the final value, so nothing shifts while counting.
 // `tracking` must match the style's letter-spacing (em) for the width to be exact.
 const AnimatedNumber = ({ value, end, style, tracking = -0.045 }) => {
-  const chars = end.toLocaleString("fr-CA").length;
+  const chars = end.toLocaleString("en-CA").length;
   return (
     <span style={{
       display: "inline-block",
@@ -206,7 +217,7 @@ const AnimatedNumber = ({ value, end, style, tracking = -0.045 }) => {
       minWidth: `calc(${chars}ch + ${chars * tracking}em)`,
       ...style,
     }}>
-      {value.toLocaleString("fr-CA")}
+      {value.toLocaleString("en-CA")}
     </span>
   );
 };
@@ -215,13 +226,15 @@ const AnimatedNumber = ({ value, end, style, tracking = -0.045 }) => {
 // Data slide layout — number, visualization, label, sentence; one block, left-aligned.
 // ---------------------------------------------------------------------------
 const DATA_TONES = {
-  white: { number: RED, label: BLACK, sentence: "#666666" },
+  white: { number: BRAND_RED, label: BLACK, sentence: "#666666" },
   red: { number: WHITE, label: WHITE, sentence: "rgba(255,255,255,0.8)" },
   dark: { number: WHITE, label: WHITE, sentence: "rgba(255,255,255,0.7)" },
-  electric: { number: ELECTRIC_BLUE, label: WHITE, sentence: "rgba(255,255,255,0.7)" },
+  electric: { number: ELECTRIC_GREEN, label: WHITE, sentence: "rgba(255,255,255,0.7)" },
 };
 const DATA_NUMBER_SIZE = 96;
 const DATA_NUMBER_TRACKING_PX = -2;
+// Month names run wider than digit hero numbers; long ones (e.g. "September") still need a smaller size.
+const BEST_MONTH_SIZE = 80;
 
 // Entrance step: fade + 16px rise, 60ms apart (see ENTRANCE_STEP).
 const EntranceStep = ({ step, style, children, ...rest }) => {
@@ -280,23 +293,53 @@ const DataSlide = ({ tone, hero, label, sentence }) => {
   );
 };
 
-// Stylized island of Montréal: smooth closed outline, SW tip bottom-left → NE tip top-right.
-// The loop starts and ends at the path's first point.
-const ISLAND_PATH = "M20 78 C14 66 40 56 70 50 C100 44 120 34 150 22 C170 14 192 10 194 20 C196 30 176 40 150 52 C120 66 96 72 66 80 C42 86 24 88 20 78 Z";
-const ISLAND_START = { x: 20, y: 78 };
-const ISLAND_VIEWBOX = "4 0 200 98";
-const ISLAND_FILL = "#EEEEEE";
-const ISLAND_LOOPS = 15;
-// One slow loop around the island. The loop, the rider and the ×N counter all follow
-// the km count-up's progress, so they land together with 743.
-const KmIslandHero = ({ km }) => {
+// Stylized Stanley Park, north up, traced from its shoreline landmarks. The Seawall loop
+// starts and ends at the Coal Harbour neck (the first point).
+const PARK_POINTS = [
+  [108, 122], // Coal Harbour neck
+  [140, 116], // Deadman's Island
+  [166, 106], // Hallelujah Point
+  [192, 86], // Brockton Point
+  [158, 74],
+  [124, 52], // Lumberman's Arch
+  [94, 24], // Lions Gate Bridge
+  [74, 12], // Prospect Point
+  [50, 20],
+  [26, 44],
+  [14, 64], // Siwash Rock
+  [16, 86], // Third Beach
+  [34, 114], // Second Beach
+  [62, 134], // English Bay neck
+];
+// Closed Catmull-Rom spline through the points, as cubic Béziers.
+const smoothClosedPath = (pts) => {
+  const at = (i) => pts[(i + pts.length) % pts.length];
+  const f = (n) => Math.round(n * 10) / 10;
+  const segs = pts.map((p1, i) => {
+    const [p0, p2, p3] = [at(i - 1), at(i + 1), at(i + 2)];
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
+    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+    return `C${f(c1[0])} ${f(c1[1])} ${f(c2[0])} ${f(c2[1])} ${p2[0]} ${p2[1]}`;
+  });
+  return `M${pts[0][0]} ${pts[0][1]} ${segs.join(" ")} Z`;
+};
+const PARK_PATH = smoothClosedPath(PARK_POINTS);
+const PARK_START = { x: PARK_POINTS[0][0], y: PARK_POINTS[0][1] };
+const PARK_VIEWBOX = "4 0 194 146";
+const PARK_FILL = "#EEEEEE";
+const LOST_LAGOON = { cx: 86, cy: 120, rx: 11, ry: 5 };
+const SEAWALL_KM = 10;
+const SEAWALL_LOOPS = Math.round(RECAP.km / SEAWALL_KM); // 61
+// One slow loop along the Seawall. The loop, the rider and the ×N counter all follow
+// the km count-up's progress, so they land together with the final km.
+const KmSeawallHero = ({ km }) => {
   const { value, progress } = useCountUp(km);
   const outlineRef = useRef(null);
-  const loops = 1 + Math.round((ISLAND_LOOPS - 1) * progress);
+  const loops = 1 + Math.round((SEAWALL_LOOPS - 1) * progress);
 
   const outline = outlineRef.current;
   const rider = progress >= 1 || !outline
-    ? ISLAND_START
+    ? PARK_START
     : outline.getPointAtLength(progress * outline.getTotalLength());
 
   return (
@@ -305,21 +348,22 @@ const KmIslandHero = ({ km }) => {
       <DataVisual>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <svg
-            viewBox={ISLAND_VIEWBOX}
+            viewBox={PARK_VIEWBOX}
             style={{ flex: 1, minWidth: 0, height: "auto", display: "block", overflow: "visible" }}
           >
             <path
               ref={outlineRef}
-              d={ISLAND_PATH}
-              fill={ISLAND_FILL}
-              stroke={ISLAND_FILL}
+              d={PARK_PATH}
+              fill={PARK_FILL}
+              stroke={PARK_FILL}
               strokeWidth="6"
               strokeLinejoin="round"
             />
+            <ellipse {...LOST_LAGOON} fill={WHITE} />
             <path
-              d={ISLAND_PATH}
+              d={PARK_PATH}
               fill="none"
-              stroke={RED}
+              stroke={BRAND_RED}
               strokeWidth="3"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -327,11 +371,11 @@ const KmIslandHero = ({ km }) => {
               strokeDasharray="1 1"
               strokeDashoffset={1 - progress}
             />
-            <circle cx={rider.x} cy={rider.y} r="6" fill={RED} stroke={WHITE} strokeWidth="2" />
+            <circle cx={rider.x} cy={rider.y} r="6" fill={BRAND_RED} stroke={WHITE} strokeWidth="2" />
           </svg>
-          <div style={{ ...heroNumber(44, RED), lineHeight: 1, flexShrink: 0, display: "flex", alignItems: "flex-start" }}>
+          <div style={{ ...heroNumber(44, BRAND_RED), lineHeight: 1, flexShrink: 0, display: "flex", alignItems: "flex-start" }}>
             <span style={{ fontSize: 28, marginTop: 4, marginRight: 1 }}>×</span>
-            <AnimatedNumber value={loops} end={ISLAND_LOOPS} />
+            <AnimatedNumber value={loops} end={SEAWALL_LOOPS} />
           </div>
         </div>
       </DataVisual>
@@ -412,8 +456,8 @@ const BreathingBlob = ({ color, size = 320, style, duration = 9 }) => (
   />
 );
 
-// Simple rounded BIXI-style bike icon
-const BikeIcon = ({ size = 44, color = RED }) => (
+// Simple rounded bike icon
+const BikeIcon = ({ size = 44, color = BRAND_RED }) => (
   <svg width={size} height={size * 0.72} viewBox="0 0 50 36" fill="none">
     <circle cx="11" cy="26" r="8" stroke={color} strokeWidth="3.4" />
     <circle cx="39" cy="26" r="8" stroke={color} strokeWidth="3.4" />
@@ -427,23 +471,43 @@ const BikeIcon = ({ size = 44, color = RED }) => (
 
 const BOLT_PATH = "M13 2 L4 14 h6 l-1 8 9 -12 h-6 z";
 
-const STATION_PHOTO_URL = "/station-mont-royal.jpg";
-const favoriteStationDisplayLabel = (station) =>
-  station.replace(/^Station\s+/, "");
+// Favorite station photo (CC BY 2.0, see public/science-world-attribution.txt).
+// The dome sits left of center in the upper third: crops anchor to the left edge.
+const STATION_PHOTO_URL = "/science-world-web.jpg";
+const STATION_PHOTO_POSITION = "6% 50%";
+const STATION_PHOTO_CREDIT = "Photo: Iwona Erskine-Kellie, CC BY 2.0";
+const STATION_PIN = { left: "47%", top: "21%" }; // top of the dome
 
-const SPONSOR = "SPONSOR";
+const LOGO_URL = "/mobi-logo.svg";
+const LOGO_RATIO = 145 / 512;
 
-const BixiLogo = ({ width = 120, bg = WHITE, style }) => (
-  <img
-    src={bg === RED ? "/bixi-logo-white.png" : "/bixi-logo.png"}
-    alt="BIXI"
-    width={width}
-    style={{ display: "block", height: "auto", ...style }}
-  />
-);
+// The logo artwork is white: on white slides it sits on a red plate, like the station signage.
+const MobiLogo = ({ width = 120, bg = WHITE, style }) => {
+  const onLight = bg === WHITE;
+  const padX = Math.round(width * 0.07);
+  const padY = Math.round(width * 0.015);
+  return (
+    <span style={{
+      display: "inline-block",
+      lineHeight: 0,
+      background: onLight ? BRAND_RED : "transparent",
+      borderRadius: onLight ? Math.round(width * 0.08) : 0,
+      padding: onLight ? `${padY}px ${padX}px` : 0,
+      ...style,
+    }}>
+      <img
+        src={LOGO_URL}
+        alt="Mobi by Rogers"
+        width={onLight ? width - padX * 2 : width}
+        height={Math.round((onLight ? width - padX * 2 : width) * LOGO_RATIO)}
+        style={{ display: "block" }}
+      />
+    </span>
+  );
+};
 
-// Persistent logo at top of interior slides — red on light backgrounds, white on red
-const SlideTopLogo = ({ bg }) => <BixiLogo width={88} bg={bg} />;
+// Persistent logo at top of interior slides
+const SlideTopLogo = ({ bg }) => <MobiLogo width={88} bg={bg} />;
 
 // ---------------------------------------------------------------------------
 // Framer-driven entrance helpers — each registers its end time with the slide
@@ -519,73 +583,45 @@ const INTRO_TIMELINE = {
   headline: 0.1,
   wordStagger: 0.09,
   subtitle: 0.6,
-  sponsor: 0.95,
-  sponsorDuration: 0.6,
   hint: 1.6,
 };
+const INTRO_HEADLINE_SIZE = 60;
 const INTRO_END_S = INTRO_GIFT.autoOpen + INTRO_GIFT.reveal + INTRO_TIMELINE.hint + 0.5;
-
-const SponsorIntro = () => {
-  const reduced = useStill();
-  return (
-    <motion.div
-      initial={reduced ? false : { opacity: 0, scale: 0.6 }}
-      animate={{ opacity: [0, 1, 1], scale: [0.6, 1.08, 1] }}
-      transition={{
-        delay: INTRO_TIMELINE.sponsor,
-        duration: INTRO_TIMELINE.sponsorDuration,
-        times: [0, 0.6, 1],
-        ease: "easeOut",
-      }}
-      style={{ alignSelf: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}
-    >
-      <span style={{ fontFamily: BODY, fontSize: 11, fontWeight: 500, letterSpacing: 2, textTransform: "uppercase", color: "#888888", lineHeight: 1 }}>
-        Présenté par
-      </span>
-      <SponsorLogo size={30} color={BLACK} />
-    </motion.div>
-  );
-};
 
 const sponsorInk = (bg) => (bg === WHITE ? BLACK : WHITE);
 
-// Fictional sponsor lockup: split-circle mark + geometric wordmark, monochrome.
-const SponsorLogo = ({ size = 12, color = BLACK }) => (
-  <span aria-label={SPONSOR} style={{ display: "inline-flex", alignItems: "center", gap: Math.round(size * 0.35), color, lineHeight: 1, whiteSpace: "nowrap" }}>
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} aria-hidden style={{ display: "block", flexShrink: 0 }}>
-      <path d="M18.57 3.17 A11 11 0 1 0 3.17 18.57 Z" />
-      <path d="M20.83 5.43 A11 11 0 0 1 5.43 20.83 Z" />
-    </svg>
-    <span aria-hidden style={{ fontFamily: BRAND, fontWeight: 700, fontSize: size, letterSpacing: "-0.02em", lineHeight: 1 }}>
-      {SPONSOR}
-    </span>
+// Rogers is already in the logo lockup; only the e-bike sponsor gets a separate credit.
+const SPONSOR_ELECTRIC = { label: "E-bikes by", name: "Simplii Financial" };
+
+// Monochrome text wordmark.
+const SponsorLogo = ({ name, size = 12, color = BLACK }) => (
+  <span style={{ fontFamily: HEAD, fontWeight: 700, fontSize: size, letterSpacing: "-0.02em", lineHeight: 1, color, whiteSpace: "nowrap" }}>
+    {name}
   </span>
 );
 
-const SponsorHeaderCorner = ({ bg }) => {
+const SponsorHeaderCorner = ({ bg, sponsor }) => {
   const onLight = bg === WHITE;
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 7, whiteSpace: "nowrap", lineHeight: 1 }}>
       <span style={{ fontFamily: BODY, fontSize: 10, color: onLight ? "#888888" : "rgba(255,255,255,0.7)", letterSpacing: 0.3 }}>
-        Présenté par
+        {sponsor.label}
       </span>
-      <SponsorLogo size={12} color={sponsorInk(bg)} />
+      <SponsorLogo name={sponsor.name} size={12} color={sponsorInk(bg)} />
     </span>
   );
 };
 
-const PROMO_CODE = "HIVER2027";
-
-const GIFT_RED_GRADIENT = "linear-gradient(145deg, #EE3124 0%, #C0392B 100%)";
+const GIFT_RED_GRADIENT = `linear-gradient(145deg, ${BRAND_RED} 0%, ${BRAND_RED_DARK} 100%)`;
 const GiftBow = ({ width = 96 }) => (
   <svg width={width} height={Math.round((width * 68) / 96)} viewBox="0 0 96 68" fill="none" aria-hidden style={{ display: "block", overflow: "visible", filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.22))" }}>
     <path d="M44 38 L30 64 L37 61 L41 67 L48 42 Z" fill="#F3F3F3" />
     <path d="M52 38 L66 64 L59 61 L55 67 L48 42 Z" fill="#F3F3F3" />
     <path d="M47 34 C36 12 10 6 8 22 C6 38 32 42 47 36 Z" fill={WHITE} />
     <path d="M49 34 C60 12 86 6 88 22 C90 38 64 42 49 36 Z" fill={WHITE} />
-    <path d="M44 33 C34 22 20 18 17 24" stroke="rgba(192,57,43,0.18)" strokeWidth="2" strokeLinecap="round" />
-    <path d="M52 33 C62 22 76 18 79 24" stroke="rgba(192,57,43,0.18)" strokeWidth="2" strokeLinecap="round" />
-    <rect x="40" y="27" width="16" height="15" rx="6" fill={WHITE} stroke="rgba(192,57,43,0.16)" strokeWidth="1.5" />
+    <path d="M44 33 C34 22 20 18 17 24" stroke="rgba(168,32,26,0.18)" strokeWidth="2" strokeLinecap="round" />
+    <path d="M52 33 C62 22 76 18 79 24" stroke="rgba(168,32,26,0.18)" strokeWidth="2" strokeLinecap="round" />
+    <rect x="40" y="27" width="16" height="15" rx="6" fill={WHITE} stroke="rgba(168,32,26,0.16)" strokeWidth="1.5" />
   </svg>
 );
 
@@ -637,8 +673,8 @@ const ConfettiBurst = ({ delay = 0 }) => {
             width: p.w,
             height: p.round ? p.w : p.h,
             borderRadius: p.round ? "50%" : 2,
-            background: p.red ? RED : WHITE,
-            boxShadow: p.red ? "none" : "0 0 0 1px rgba(238,49,36,0.35), 0 1px 3px rgba(0,0,0,0.12)",
+            background: p.red ? BRAND_RED : WHITE,
+            boxShadow: p.red ? "none" : "0 0 0 1px rgba(218,41,28,0.35), 0 1px 3px rgba(0,0,0,0.12)",
           }}
         />
       ))}
@@ -648,20 +684,20 @@ const ConfettiBurst = ({ delay = 0 }) => {
 
 // Unwrap timeline (seconds): bow flies, ribbons slide off, card straightens and grows.
 const UNWRAP = { bow: 0, ribbons: 0.2, expand: 0.6, expandDuration: 0.65, confetti: 0.62, content: 0.85, headline: 0.7, cta: 1.25 };
-const MERCI_CARD_W = Math.round(390 * 0.78); // 78% of the 390px story card
-const MERCI_GIFT_H = Math.round((MERCI_CARD_W * 2) / 3); // 3:2 wrapped gift
-const MERCI_GIFT_TILT = -2;
-const MERCI_RIBBON_W = 56;
-const MERCI_RIBBON = "rgba(255,255,255,0.9)";
-const MERCI_BOW_W = 100;
-const MERCI_BOW_H = Math.round((MERCI_BOW_W * 68) / 96);
-const MERCI_GRAY = "#666666";
+const THANKS_CARD_W = Math.round(390 * 0.78); // 78% of the 390px story card
+const THANKS_GIFT_H = Math.round((THANKS_CARD_W * 2) / 3); // 3:2 wrapped gift
+const THANKS_GIFT_TILT = -2;
+const THANKS_RIBBON_W = 56;
+const THANKS_RIBBON = "rgba(255,255,255,0.9)";
+const THANKS_BOW_W = 100;
+const THANKS_BOW_H = Math.round((THANKS_BOW_W * 68) / 96);
+const THANKS_GRAY = "#666666";
 // Slide content starts 36px from the top and the header ends ~52px down: the headline sits
 // 40px under the header while wrapped, 20px once opened.
-const MERCI_HEADER_BOTTOM = 52 - 36;
-const MERCI_HEADLINE_GAP = { closed: 40, open: 20 };
+const THANKS_HEADER_BOTTOM = 52 - 36;
+const THANKS_HEADLINE_GAP = { closed: 40, open: 20 };
 
-const MerciGift = ({ opened, onOpen, onShare }) => {
+const ThanksGift = ({ opened, onOpen, onShare }) => {
   const reduced = useStill();
   const [openedHere, setOpenedHere] = useState(false);
   const animateOpen = openedHere && !reduced;
@@ -675,14 +711,14 @@ const MerciGift = ({ opened, onOpen, onShare }) => {
   };
 
   const wiggle = !opened && !reduced;
-  const tilt = MERCI_GIFT_TILT;
+  const tilt = THANKS_GIFT_TILT;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", textAlign: "center" }}>
       <motion.div
         aria-hidden
         initial={false}
-        animate={{ height: MERCI_HEADER_BOTTOM + (opened ? MERCI_HEADLINE_GAP.open : MERCI_HEADLINE_GAP.closed) }}
+        animate={{ height: THANKS_HEADER_BOTTOM + (opened ? THANKS_HEADLINE_GAP.open : THANKS_HEADLINE_GAP.closed) }}
         transition={{ delay: at(UNWRAP.expand), duration: at(0.5), ease: STORY_EASE }}
         style={{ flexShrink: 0 }}
       />
@@ -695,20 +731,20 @@ const MerciGift = ({ opened, onOpen, onShare }) => {
           style={{
             ...headline(30, BLACK),
             lineHeight: 1.05,
-            maxWidth: opened ? "100%" : MERCI_CARD_W,
+            maxWidth: opened ? "100%" : THANKS_CARD_W,
             whiteSpace: opened ? "nowrap" : "normal",
           }}
         >
-          {opened ? "Profitez-en, Bixiste!" : "Un petit merci, Bixiste"}
+          {opened ? "Enjoy!" : "A little thank you, rider"}
         </motion.div>
       </AnimatePresence>
 
-      <motion.div layout="position" style={{ width: MERCI_CARD_W, maxWidth: "100%", marginTop: 20 }}>
+      <motion.div layout="position" style={{ width: THANKS_CARD_W, maxWidth: "100%", marginTop: 20 }}>
         <FadeUp delay={0.2} y={24}>
           <motion.div
             role={opened ? undefined : "button"}
             tabIndex={opened ? undefined : 0}
-            aria-label={opened ? undefined : "Ouvrir le cadeau"}
+            aria-label={opened ? undefined : "Open the gift"}
             data-no-nav
             onClick={open}
             onKeyDown={(e) => {
@@ -734,14 +770,14 @@ const MerciGift = ({ opened, onOpen, onShare }) => {
             {/* One card: red while wrapped, grows in height to reveal the offer */}
             <motion.div
               initial={false}
-              animate={{ height: opened ? "auto" : MERCI_GIFT_H }}
+              animate={{ height: opened ? "auto" : THANKS_GIFT_H }}
               transition={{ delay: at(UNWRAP.expand), duration: at(UNWRAP.expandDuration), ease: [0.4, 0, 0.2, 1] }}
               style={{
                 position: "relative",
-                borderRadius: MERCI_CARD_RADIUS,
+                borderRadius: THANKS_CARD_RADIUS,
                 overflow: "hidden",
-                background: RED,
-                boxShadow: "0 16px 32px rgba(238,49,36,0.25)",
+                background: BRAND_RED,
+                boxShadow: "0 16px 32px rgba(218,41,28,0.25)",
                 textAlign: "left",
               }}
             >
@@ -751,7 +787,7 @@ const MerciGift = ({ opened, onOpen, onShare }) => {
                 transition={{ delay: at(UNWRAP.content), duration: at(0.45) }}
                 style={{ pointerEvents: opened ? "auto" : "none" }}
               >
-                <MerciOffer />
+                <ThanksOffer />
               </motion.div>
 
               {showWrapping && (
@@ -760,13 +796,13 @@ const MerciGift = ({ opened, onOpen, onShare }) => {
                     initial={false}
                     animate={opened ? { x: "115%" } : { x: 0 }}
                     transition={{ delay: UNWRAP.ribbons, duration: 0.45, ease: [0.5, 0, 0.75, 0] }}
-                    style={{ position: "absolute", left: 0, right: 0, top: (MERCI_GIFT_H - MERCI_RIBBON_W) / 2, height: MERCI_RIBBON_W, background: MERCI_RIBBON }}
+                    style={{ position: "absolute", left: 0, right: 0, top: (THANKS_GIFT_H - THANKS_RIBBON_W) / 2, height: THANKS_RIBBON_W, background: THANKS_RIBBON }}
                   />
                   <motion.div
                     initial={false}
                     animate={opened ? { y: "-115%" } : { y: 0 }}
                     transition={{ delay: UNWRAP.ribbons + 0.08, duration: 0.45, ease: [0.5, 0, 0.75, 0] }}
-                    style={{ position: "absolute", top: 0, height: MERCI_GIFT_H, left: "50%", width: MERCI_RIBBON_W, marginLeft: -MERCI_RIBBON_W / 2, background: MERCI_RIBBON }}
+                    style={{ position: "absolute", top: 0, height: THANKS_GIFT_H, left: "50%", width: THANKS_RIBBON_W, marginLeft: -THANKS_RIBBON_W / 2, background: THANKS_RIBBON }}
                   />
                 </>
               )}
@@ -778,7 +814,7 @@ const MerciGift = ({ opened, onOpen, onShare }) => {
                 position: "absolute",
                 left: 0,
                 right: 0,
-                top: (MERCI_GIFT_H - MERCI_BOW_H) / 2,
+                top: (THANKS_GIFT_H - THANKS_BOW_H) / 2,
                 display: "flex",
                 justifyContent: "center",
                 pointerEvents: "none",
@@ -793,13 +829,13 @@ const MerciGift = ({ opened, onOpen, onShare }) => {
                     ? { delay: UNWRAP.bow, duration: 0.8, times: [0, 0.3, 1], ease: "easeOut" }
                     : { duration: 0 }}
                 >
-                  <GiftBow width={MERCI_BOW_W} />
+                  <GiftBow width={THANKS_BOW_W} />
                 </motion.div>
               </div>
             )}
 
             {animateOpen && (
-              <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: MERCI_GIFT_H, pointerEvents: "none" }}>
+              <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: THANKS_GIFT_H, pointerEvents: "none" }}>
                 <ConfettiBurst delay={UNWRAP.confetti} />
               </div>
             )}
@@ -812,7 +848,7 @@ const MerciGift = ({ opened, onOpen, onShare }) => {
         initial={false}
         animate={{ marginTop: opened ? 16 : 24 }}
         transition={{ delay: at(UNWRAP.expand), duration: at(0.5), ease: STORY_EASE }}
-        style={{ width: MERCI_CARD_W, maxWidth: "100%" }}
+        style={{ width: THANKS_CARD_W, maxWidth: "100%" }}
       >
         <AnimatePresence initial={false} mode="wait">
           {!opened ? (
@@ -825,7 +861,7 @@ const MerciGift = ({ opened, onOpen, onShare }) => {
             >
               <span style={{ display: "flex", alignItems: "center", gap: 8, animation: "hintPulse 1.8s ease-in-out 1s infinite" }}>
                 <TapIcon />
-                <span style={{ fontFamily: BODY, fontSize: 16, color: MERCI_GRAY, lineHeight: 1 }}>Appuyez pour ouvrir</span>
+                <span style={{ fontFamily: BODY, fontSize: 16, color: THANKS_GRAY, lineHeight: 1 }}>Tap to open</span>
               </span>
             </motion.div>
           ) : (
@@ -840,7 +876,7 @@ const MerciGift = ({ opened, onOpen, onShare }) => {
                 style={{
                   width: "100%",
                   height: 48,
-                  background: RED,
+                  background: BRAND_RED,
                   color: WHITE,
                   border: "none",
                   borderRadius: 14,
@@ -854,7 +890,7 @@ const MerciGift = ({ opened, onOpen, onShare }) => {
                   gap: 10,
                 }}
               >
-                Partager mon récap
+                Share my recap
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
@@ -867,8 +903,8 @@ const MerciGift = ({ opened, onOpen, onShare }) => {
           animate={{ marginTop: opened ? 16 : 40 }}
           transition={{ delay: at(UNWRAP.cta), duration: at(0.4), ease: STORY_EASE }}
         >
-          <FadeUp delay={0.6} y={8} style={{ fontFamily: BODY, fontSize: 15, lineHeight: 1.4, color: MERCI_GRAY }}>
-            Merci de faire partie de la communauté BIXI.
+          <FadeUp delay={0.6} y={8} style={{ fontFamily: BODY, fontSize: 15, lineHeight: 1.4, color: THANKS_GRAY }}>
+            Thanks for being part of the Mobi community.
           </FadeUp>
         </motion.div>
       </motion.div>
@@ -876,19 +912,13 @@ const MerciGift = ({ opened, onOpen, onShare }) => {
   );
 };
 
-const MERCI_CARD_RADIUS = 24;
-const MERCI_BANNER_H = 56;
-const MERCI_OFFER_PAD = 20;
-
-const SnowflakeIcon = ({ size = 28 }) => (
-  <svg aria-hidden width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={WHITE} strokeWidth="2" strokeLinecap="round" style={{ display: "block", flexShrink: 0 }}>
-    <path d="M12 2v20M3.34 7l17.32 10M3.34 17 20.66 7" />
-    <path d="M9.53 4.03 12 6.5l2.47-2.47M17.67 5.87l-.91 3.38 3.38.91M20.14 13.84l-3.38.91.91 3.38M14.47 19.97 12 17.5l-2.47 2.47M6.33 18.13l.91-3.38-3.38-.91M3.86 10.16l3.38-.91-.91-3.38" strokeLinejoin="round" />
-  </svg>
-);
+const THANKS_CARD_RADIUS = 24;
+const THANKS_BANNER_H = 96;
+const THANKS_BANNER_PHOTO = "/mobi-bike.jpg";
+const THANKS_OFFER_PAD = 20;
 
 // Revealed offer; the gift card around it provides the rounded corners and shadow.
-const MerciOffer = () => {
+const ThanksOffer = () => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async (e) => {
@@ -904,28 +934,23 @@ const MerciOffer = () => {
 
   return (
     <div style={{ width: "100%", textAlign: "left", color: WHITE, background: GIFT_RED_GRADIENT }}>
-      <div style={{
-        height: MERCI_BANNER_H,
-        background: "rgba(0,0,0,0.12)",
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: `0 ${MERCI_OFFER_PAD}px`,
-      }}>
-        <SnowflakeIcon size={28} />
-        <span style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 14, letterSpacing: 1, textTransform: "uppercase", lineHeight: 1 }}>
-          BIXI d'hiver
-        </span>
+      <div style={{ height: THANKS_BANNER_H, background: "rgba(0,0,0,0.12)", overflow: "hidden" }}>
+        <img
+          src={THANKS_BANNER_PHOTO}
+          alt=""
+          decoding="async"
+          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 62%", display: "block" }}
+        />
       </div>
-      <div style={{ padding: MERCI_OFFER_PAD, display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ padding: THANKS_OFFER_PAD, display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 22, lineHeight: 1.1, letterSpacing: "-0.01em" }}>
-          10% sur votre abonnement hivernal
+          15% off your next annual pass
         </div>
         <div style={{ fontFamily: BODY, fontSize: 15, lineHeight: 1.35 }}>
-          On se retrouve sous la neige?
+          Vancouver looks better from the bike lane.
         </div>
         <div style={{ fontFamily: BODY, fontSize: 13, lineHeight: 1.35, color: "rgba(255,255,255,0.75)" }}>
-          Offre valable jusqu'au 28 février 2027.
+          Valid until March 31, 2027.
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{
@@ -943,12 +968,12 @@ const MerciOffer = () => {
           <button
             type="button"
             onClick={handleCopy}
-            aria-label={copied ? "Code copié" : "Copier le code promo"}
+            aria-label={copied ? "Code copied" : "Copy promo code"}
             style={{
               position: "relative",
               zIndex: 30,
               background: WHITE,
-              color: RED,
+              color: BRAND_RED,
               border: "none",
               borderRadius: 12,
               padding: "10px 16px",
@@ -960,7 +985,7 @@ const MerciOffer = () => {
               cursor: "pointer",
             }}
           >
-            {copied ? "Copié!" : "Copier"}
+            {copied ? "Copied!" : "Copy"}
           </button>
         </div>
       </div>
@@ -981,16 +1006,16 @@ const Spinner = ({ size = 20 }) => (
   </svg>
 );
 
-const PartagerButton = ({ onClick, loading }) => (
+const ShareRecapButton = ({ onClick, loading }) => (
   <button type="button" disabled={loading} onClick={onClick} style={{
-    width: "100%", height: JOIN_STRIP_H, background: WHITE, color: RED,
+    width: "100%", height: JOIN_STRIP_H, background: WHITE, color: BRAND_RED,
     border: "none", borderRadius: 14, padding: "0 16px",
     fontFamily: HEAD, fontWeight: 700, fontSize: 16, letterSpacing: 0.2,
     display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
     flexShrink: 0,
   }}>
     {loading ? <Spinner /> : <ShareIcon />}
-    Partager mon récap
+    Share my recap
   </button>
 );
 
@@ -1004,7 +1029,7 @@ const SlideShareButton = ({ bg, onClick, loading }) => {
       padding: "0 14px",
       borderRadius: 999,
       border: "none",
-      background: onLight ? "rgba(10,10,10,0.06)" : bg === RED ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.14)",
+      background: onLight ? "rgba(10,10,10,0.06)" : bg === BRAND_RED ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.14)",
       color: onLight ? BLACK : WHITE,
       fontFamily: HEAD,
       fontWeight: 700,
@@ -1015,33 +1040,33 @@ const SlideShareButton = ({ bg, onClick, loading }) => {
       gap: 7,
     }}>
       {loading ? <Spinner size={14} /> : <ShareIcon size={14} />}
-      Partager
+      Share
     </button>
   );
 };
 
 // Replaces the share button in exported images.
 const JoinStrip = ({ bg = WHITE }) => {
-  const onRed = bg === RED;
+  const onRed = bg === BRAND_RED;
   return (
     <div style={{
       width: "100%",
       height: JOIN_STRIP_H,
       borderRadius: 14,
-      background: onRed ? WHITE : RED,
+      background: onRed ? WHITE : BRAND_RED,
       color: onRed ? BLACK : WHITE,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       gap: 5,
       fontFamily: HEAD,
-      fontWeight: 600,
+      fontWeight: 500,
       fontSize: 14,
       whiteSpace: "nowrap",
       flexShrink: 0,
     }}>
-      Rejoignez BIXI avec le code
-      <span style={{ fontWeight: 900, letterSpacing: 0.6, color: onRed ? RED : WHITE }}>{JOIN_CODE}</span>
+      Ride with Mobi, code
+      <span style={{ fontWeight: 900, letterSpacing: 0.6, color: onRed ? BRAND_RED : WHITE }}>{JOIN_CODE}</span>
     </div>
   );
 };
@@ -1053,7 +1078,7 @@ const ShareClosingStrip = () => (
     height: JOIN_STRIP_H,
     borderRadius: 14,
     background: WHITE,
-    color: RED,
+    color: BRAND_RED,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -1064,8 +1089,8 @@ const ShareClosingStrip = () => (
     whiteSpace: "nowrap",
     flexShrink: 0,
   }}>
-    <span style={{ fontWeight: 800, fontSize: 14 }}>À la prochaine saison, Bixiste!</span>
-    <span style={{ fontWeight: 600, fontSize: 12 }}>
+    <span style={{ fontWeight: 800, fontSize: 14 }}>Ride with Mobi</span>
+    <span style={{ fontWeight: 500, fontSize: 12 }}>
       Code <span style={{ fontWeight: 900, letterSpacing: 0.6 }}>{JOIN_CODE}</span>
     </span>
   </div>
@@ -1092,18 +1117,16 @@ const RecapTile = ({ value, unit, label }) => (
 
 const RecapStationRow = ({ station }) => (
   <div style={{ display: "flex", alignItems: "center", gap: 14, background: "rgba(0,0,0,0.12)", borderRadius: 14, padding: 12 }}>
-    <div style={{
-      width: 64,
-      height: 64,
-      borderRadius: 10,
-      flexShrink: 0,
-      backgroundImage: `url(${STATION_PHOTO_URL})`,
-      backgroundSize: "cover",
-      backgroundPosition: "center bottom",
-    }} />
+    <img
+      src={STATION_PHOTO_URL}
+      alt=""
+      width={64}
+      height={64}
+      style={{ borderRadius: 10, flexShrink: 0, objectFit: "cover", objectPosition: "20% 30%", display: "block" }}
+    />
     <div style={{ minWidth: 0 }}>
       <div style={{ fontFamily: BODY, fontSize: 11, lineHeight: 1.2, letterSpacing: 1, textTransform: "uppercase", color: "rgba(255,255,255,0.7)" }}>
-        Station préférée
+        Favourite station
       </div>
       <div style={{ fontFamily: HEAD, fontWeight: 700, fontSize: 17, lineHeight: 1.2, color: WHITE, marginTop: 4 }}>
         {station}
@@ -1121,7 +1144,7 @@ const StatContextLabel = ({ children, dark, accent, style }) => (
     letterSpacing: 1.6,
     textTransform: "uppercase",
     lineHeight: 1.2,
-    color: accent ? RED : (dark ? "rgba(255,255,255,0.72)" : "rgba(10,10,10,0.55)"),
+    color: accent ? BRAND_RED : (dark ? "rgba(255,255,255,0.72)" : "rgba(10,10,10,0.55)"),
     marginBottom: 12,
     ...style,
   }}>{children}</div>
@@ -1201,7 +1224,7 @@ const SeasonBarChart = ({ style }) => {
                 width: "100%",
                 maxWidth: 28,
                 height: Math.max(4, (value / SEASON_BAR_MAX) * barMaxHeight),
-                background: highlight ? RED : "rgba(255,255,255,0.25)",
+                background: highlight ? BRAND_RED : "rgba(255,255,255,0.25)",
                 borderRadius: "3px 3px 0 0",
                 flexShrink: 0,
                 transformOrigin: "bottom center",
@@ -1231,7 +1254,7 @@ const SeasonBarChart = ({ style }) => {
   );
 };
 
-// Donut: electric share draws in blue, the rest stays a faint white track. Ride count,
+// Donut: electric share draws in green, the rest stays a faint white track. Ride count,
 // arc and center percentage all follow one count-up progress.
 const DONUT_SIZE = 156;
 const DONUT_STROKE = 18;
@@ -1260,7 +1283,7 @@ const ElectricDonutHero = ({ electric, total, pct }) => {
               position: "absolute",
               inset: -50,
               borderRadius: "50%",
-              background: "radial-gradient(circle, rgba(31,91,214,0.38) 0%, rgba(31,91,214,0.12) 45%, transparent 70%)",
+              background: `radial-gradient(circle, ${greenA(0.38)} 0%, ${greenA(0.12)} 45%, transparent 70%)`,
               pointerEvents: "none",
             }} />
             <svg width={DONUT_SIZE} height={DONUT_SIZE} viewBox={`0 0 ${DONUT_SIZE} ${DONUT_SIZE}`} style={{ display: "block", position: "relative" }}>
@@ -1270,7 +1293,7 @@ const ElectricDonutHero = ({ electric, total, pct }) => {
                 cy={c}
                 r={r}
                 fill="none"
-                stroke={ELECTRIC_BLUE}
+                stroke={ELECTRIC_GREEN}
                 strokeWidth={DONUT_STROKE}
                 pathLength="100"
                 strokeDasharray={`${arc} 100`}
@@ -1279,17 +1302,17 @@ const ElectricDonutHero = ({ electric, total, pct }) => {
             </svg>
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
               <svg width="16" height="16" viewBox="0 0 24 24" style={{ display: "block", marginBottom: 4 }}>
-                <path d={BOLT_PATH} fill={ELECTRIC_BLUE} strokeLinejoin="round" />
+                <path d={BOLT_PATH} fill={ELECTRIC_GREEN} strokeLinejoin="round" />
               </svg>
-              <div style={{ ...heroNumber(40, ELECTRIC_BLUE), lineHeight: 1, display: "flex", alignItems: "flex-start" }}>
+              <div style={{ ...heroNumber(40, ELECTRIC_GREEN), lineHeight: 1, display: "flex", alignItems: "flex-start" }}>
                 <AnimatedNumber value={Math.round(pct * progress)} end={pct} style={{ textAlign: "right" }} />
                 <span style={{ fontSize: 22, marginTop: 3, marginLeft: 1 }}>%</span>
               </div>
             </div>
           </div>
           <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 14 }}>
-            <DonutLegendRow swatch={ELECTRIC_BLUE} label="Électrique" value={electric} />
-            <DonutLegendRow swatch="rgba(255,255,255,0.25)" label="Classique" value={total - electric} />
+            <DonutLegendRow swatch={ELECTRIC_GREEN} label="Electric" value={electric} />
+            <DonutLegendRow swatch="rgba(255,255,255,0.25)" label="Classic" value={total - electric} />
           </div>
         </div>
       </DataVisual>
@@ -1352,17 +1375,23 @@ const StationPhotoCard = ({ height = 320, style }) => {
         borderRadius: 20,
         overflow: "hidden",
         border: `1px solid ${BORDER}`,
+        background: BLACK,
         ...style,
       }}
     >
       <img
-        crossOrigin="anonymous"
         src={STATION_PHOTO_URL}
-        alt=""
+        alt="Science World at sunset, Vancouver"
         decoding="async"
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center bottom", display: "block" }}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: STATION_PHOTO_POSITION, display: "block" }}
       />
-      <div aria-hidden style={{ position: "absolute", left: "50%", top: "52%", transform: "translate(-50%, -50%)" }}>
+      <span style={{
+        position: "absolute", right: 8, bottom: 8, padding: "3px 6px", borderRadius: 4,
+        background: "rgba(0,0,0,0.45)", fontFamily: BODY, fontSize: 9, lineHeight: 1, color: "rgba(255,255,255,0.85)",
+      }}>
+        {STATION_PHOTO_CREDIT}
+      </span>
+      <div aria-hidden style={{ position: "absolute", ...STATION_PIN, transform: "translate(-50%, -50%)" }}>
         <motion.div
           initial={reduced ? false : { scale: 0.3, opacity: 0 }}
           animate={{ scale: [0.3, 1, 0.8, 1], opacity: [0, 0.9, 0.9, 1] }}
@@ -1370,7 +1399,7 @@ const StationPhotoCard = ({ height = 320, style }) => {
           style={{ width: 28, height: 8, borderRadius: "50%", background: "rgba(0,0,0,0.35)", filter: "blur(1px)" }}
         />
       </div>
-      <div aria-hidden style={{ position: "absolute", left: "50%", top: "52%", transform: "translate(-50%, -100%)" }}>
+      <div aria-hidden style={{ position: "absolute", ...STATION_PIN, transform: "translate(-50%, -100%)" }}>
         <motion.div
           initial={reduced ? false : { y: -170, opacity: 0 }}
           animate={{ y: [-170, 0, -16, 0], opacity: [0, 1, 1, 1] }}
@@ -1381,7 +1410,7 @@ const StationPhotoCard = ({ height = 320, style }) => {
             width: 44,
             height: 44,
             borderRadius: "50%",
-            background: RED,
+            background: BRAND_RED,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -1389,7 +1418,7 @@ const StationPhotoCard = ({ height = 320, style }) => {
           }}>
             <BikeIcon size={24} color={WHITE} />
           </div>
-          <div style={{ width: 0, height: 0, borderLeft: "7px solid transparent", borderRight: "7px solid transparent", borderTop: `10px solid ${RED}`, marginTop: 1 }} />
+          <div style={{ width: 0, height: 0, borderLeft: "7px solid transparent", borderRight: "7px solid transparent", borderTop: `10px solid ${BRAND_RED}`, marginTop: 1 }} />
         </motion.div>
       </div>
     </motion.div>
@@ -1409,7 +1438,7 @@ const PERSONA_CARD = {
   pillStagger: 0.12,
 };
 
-// "Daily routine" mark: a bold BIXI bike inside a ~300° repeat arrow (viewBox 110, center 55).
+// "Daily routine" mark: a bold bike inside a ~300° repeat arrow (viewBox 110, center 55).
 // The arc's gap sits at the top; the arrowhead at its end points clockwise into the gap.
 const ROUTINE_ARC = "M77 16.9 A44 44 0 1 1 33 16.9";
 const ROUTINE_ARROWHEAD = "M41.5 12 L29 10.3 L36.8 23.8 Z";
@@ -1481,7 +1510,7 @@ const PersonaIcon = () => {
           <path d="M67 44 L65 37 L58 36" strokeWidth="5" />
           <rect x="40" y="44" width="13" height="6" rx="3" fill={WHITE} strokeWidth="0" />
           <rect x="69" y="37" width="17" height="12" rx="2.5" fill={WHITE} strokeWidth="0" />
-          <path d="M74.5 40 V46 M80.5 40 V46" stroke={RED} strokeWidth="1.6" />
+          <path d="M74.5 40 V46 M80.5 40 V46" stroke={BRAND_RED} strokeWidth="1.6" />
         </g>
       </motion.g>
     </svg>
@@ -1519,7 +1548,7 @@ const PersonaTraitPill = ({ children, delay }) => {
 
 const PersonaHeroCard = ({ d }) => {
   const reduced = useStill();
-  const traits = [`${d.rides} trajets`, `${ridesPerWeek} par semaine`, d.neighborhood];
+  const traits = [`${d.rides} rides`, `${ridesPerWeek} per week`, d.neighborhood];
   return (
     <motion.div
       initial={reduced ? false : { opacity: 0, y: 18, scale: 0.98 }}
@@ -1532,7 +1561,7 @@ const PersonaHeroCard = ({ d }) => {
         minWidth: 0,
         boxSizing: "border-box",
         overflow: "hidden",
-        background: RED,
+        background: BRAND_RED,
         borderRadius: 24,
         padding: "32px 24px 28px",
         display: "flex",
@@ -1602,7 +1631,7 @@ const IntroGiftBox = ({ opening }) => {
         style={{ position: "relative", zIndex: 2, marginBottom: -2 }}
       >
         <svg width="172" height="36" viewBox="0 0 172 36" aria-hidden style={{ display: "block" }}>
-          <rect x="0" y="0" width="172" height="36" rx="8" fill={RED} />
+          <rect x="0" y="0" width="172" height="36" rx="8" fill={BRAND_RED} />
           <rect x="72" y="0" width="28" height="36" fill={WHITE} />
           <rect x="0" y="30" width="172" height="6" fill="rgba(0,0,0,0.12)" />
         </svg>
@@ -1612,8 +1641,8 @@ const IntroGiftBox = ({ opening }) => {
       <svg width="150" height="116" viewBox="0 0 150 116" aria-hidden style={{ display: "block", position: "relative", zIndex: 1 }}>
         <defs>
           <linearGradient id="introGiftBody" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#EE3124" />
-            <stop offset="100%" stopColor="#C0392B" />
+            <stop offset="0%" stopColor={BRAND_RED} />
+            <stop offset="100%" stopColor={BRAND_RED_DARK} />
           </linearGradient>
         </defs>
         <rect x="0" y="0" width="150" height="116" rx="10" fill="url(#introGiftBody)" />
@@ -1660,7 +1689,7 @@ const IntroStage = () => {
             key="gift"
             role="button"
             tabIndex={0}
-            aria-label="Ouvrir le cadeau"
+            aria-label="Open the gift"
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
@@ -1675,26 +1704,23 @@ const IntroStage = () => {
         ) : (
           <motion.div key="reveal" style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
             <StaggerText
-              text="Votre été"
+              text="Your 2026"
               delay={INTRO_TIMELINE.headline}
               stagger={INTRO_TIMELINE.wordStagger}
-              style={headline(70, BLACK)}
+              style={headline(INTRO_HEADLINE_SIZE, BLACK)}
             />
             <StaggerText
-              text="à vélo."
+              text="on two wheels."
               delay={INTRO_TIMELINE.headline + INTRO_TIMELINE.wordStagger * 2}
               stagger={INTRO_TIMELINE.wordStagger}
-              style={headline(70, RED)}
+              style={headline(INTRO_HEADLINE_SIZE, BRAND_RED)}
             />
             <FadeUp
               delay={INTRO_TIMELINE.subtitle}
               style={{ fontFamily: BODY, fontWeight: 500, fontSize: 17, color: "#666666", marginTop: 22, lineHeight: 1.45, maxWidth: 280 }}
             >
-              Le récap de votre saison BIXI 2026
+              Your Mobi year in review
             </FadeUp>
-            <div style={{ marginTop: 44 }}>
-              <SponsorIntro />
-            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1726,8 +1752,8 @@ const IntroTapHint = () => (
       lineHeight: 1,
       animation: "hintPulse 1.8s ease-in-out 1s infinite",
     }}>
-      <span aria-hidden style={{ width: 6, height: 6, borderRadius: "50%", background: RED }} />
-      Appuyez pour commencer
+      <span aria-hidden style={{ width: 6, height: 6, borderRadius: "50%", background: BRAND_RED }} />
+      Tap to begin
     </span>
   </FadeUp>
 );
@@ -1742,16 +1768,16 @@ const slides = (d, shareUi = {}) => [
     dark: false,
     render: () => (
       <>
-        <BreathingBlob color="rgba(238,49,36,0.22)" size={400} style={{ top: -70, right: -90 }} />
+        <BreathingBlob color="rgba(218,41,28,0.22)" size={400} style={{ top: -70, right: -90 }} />
         <div aria-hidden style={{
           position: "absolute", top: 0, right: 0, width: "75%", height: "60%", zIndex: 1, pointerEvents: "none",
-          background: "radial-gradient(ellipse at 100% 0%, rgba(238,49,36,0.18) 0%, rgba(238,49,36,0.06) 42%, transparent 72%)",
+          background: "radial-gradient(ellipse at 100% 0%, rgba(218,41,28,0.18) 0%, rgba(218,41,28,0.06) 42%, transparent 72%)",
         }} />
-        <BreathingBlob color="rgba(238,49,36,0.10)" size={300} style={{ bottom: -100, left: -110 }} duration={11} />
+        <BreathingBlob color="rgba(218,41,28,0.10)" size={300} style={{ bottom: -100, left: -110 }} duration={11} />
         <Grain opacity={0.03} />
         <div style={{ position: "relative", zIndex: 5, display: "flex", flexDirection: "column", height: "100%" }}>
           <div style={{ marginTop: 8 }}>
-            <BixiLogo width={120} bg={WHITE} />
+            <MobiLogo width={120} bg={WHITE} />
           </div>
           <IntroStage />
         </div>
@@ -1761,8 +1787,8 @@ const slides = (d, shareUi = {}) => [
 
   // 1 — RIDES
   {
-    shareFile: "bixi-2026-trajets.png",
-    bg: RED,
+    shareFile: "mobi-2026-rides.png",
+    bg: BRAND_RED,
     dark: true,
     render: () => (
       <>
@@ -1771,8 +1797,8 @@ const slides = (d, shareUi = {}) => [
         <DataSlide
           tone="red"
           hero={<RidesCountHero rides={d.rides} />}
-          label="trajets cette saison"
-          sentence={`${ridesPerWeek} trajets par semaine, plus que 94% des Bixistes.`}
+          label="rides this year"
+          sentence="You rode more than 93% of Mobi riders in Vancouver."
         />
       </>
     ),
@@ -1780,18 +1806,18 @@ const slides = (d, shareUi = {}) => [
 
   // 2 — BEST MONTH
   {
-    shareFile: "bixi-2026-meilleur-mois.png",
+    shareFile: "mobi-2026-best-month.png",
     bg: BLACK,
     dark: true,
     render: () => (
       <>
-        <BreathingBlob color="rgba(238,49,36,0.22)" size={340} style={{ top: -120, right: -120 }} />
+        <BreathingBlob color="rgba(218,41,28,0.22)" size={340} style={{ top: -120, right: -120 }} />
         <Grain opacity={0.06} />
         <DataSlide
           tone="dark"
           hero={(
             <>
-              <EntranceStep step={ENTRANCE_STEP.number} style={dataNumberStyle(DATA_TONES.dark.number)}>
+              <EntranceStep step={ENTRANCE_STEP.number} style={{ ...dataNumberStyle(DATA_TONES.dark.number), fontSize: BEST_MONTH_SIZE }}>
                 {d.bestMonth}
               </EntranceStep>
               <DataVisual>
@@ -1799,8 +1825,8 @@ const slides = (d, shareUi = {}) => [
               </DataVisual>
             </>
           )}
-          label="votre mois le plus actif"
-          sentence={`${d.bestMonthRides} trajets en ${d.bestMonth.toLowerCase()}, votre record de la saison.`}
+          label="your most active month"
+          sentence={`${d.bestMonthRides} rides in ${d.bestMonth}, your record for the year.`}
         />
       </>
     ),
@@ -1808,18 +1834,18 @@ const slides = (d, shareUi = {}) => [
 
   // 3 — KM + NEIGHBOURHOOD + STATIONS
   {
-    shareFile: "bixi-2026-distance.png",
+    shareFile: "mobi-2026-distance.png",
     bg: WHITE,
     dark: false,
     render: () => (
       <>
-        <BreathingBlob color="rgba(238,49,36,0.10)" size={300} style={{ bottom: -110, left: -110 }} duration={10} />
+        <BreathingBlob color="rgba(218,41,28,0.10)" size={300} style={{ bottom: -110, left: -110 }} duration={10} />
         <Grain opacity={0.03} />
         <DataSlide
           tone="white"
-          hero={<KmIslandHero km={d.km} />}
-          label="kilomètres parcourus"
-          sentence={`${ISLAND_LOOPS} Tours de l'île de Montréal. Vous êtes dans le Top 1 000.`}
+          hero={<KmSeawallHero km={d.km} />}
+          label="kilometres ridden"
+          sentence={`That's like riding the Stanley Park Seawall ${SEAWALL_LOOPS} times.`}
         />
       </>
     ),
@@ -1827,16 +1853,16 @@ const slides = (d, shareUi = {}) => [
 
   // 4 — FAVORITE STATION
   {
-    shareFile: "bixi-2026-station.png",
+    shareFile: "mobi-2026-station.png",
     bg: WHITE,
     dark: false,
     render: () => (
       <div style={{ position: "relative", zIndex: 5, display: "flex", flexDirection: "column", height: "100%" }}>
         <SlideTopSpacer />
         <FadeUp delay={0.1}>
-          <StatContextLabel dark={false}>Votre station préférée</StatContextLabel>
+          <StatContextLabel dark={false}>Your favourite station</StatContextLabel>
           <div style={headline(42, BLACK)}>
-            {favoriteStationDisplayLabel(d.favoriteStation)}
+            {d.favoriteStation}
           </div>
         </FadeUp>
         <FadeUp
@@ -1850,7 +1876,7 @@ const slides = (d, shareUi = {}) => [
             marginTop: 12,
           }}
         >
-          {d.stationRides} départs depuis cette station
+          {d.stationRides} departures from this station
         </FadeUp>
         <StationPhotoCard style={{ marginTop: 28, flex: 1, minHeight: 0, height: "auto", border: "none" }} />
       </div>
@@ -1859,18 +1885,19 @@ const slides = (d, shareUi = {}) => [
 
   // 5 — ELECTRIC RIDES
   {
-    shareFile: "bixi-2026-electrique.png",
-    bg: ELECTRIC_NAVY,
+    shareFile: "mobi-2026-electric.png",
+    bg: ELECTRIC_DEEP,
     dark: true,
+    sponsor: SPONSOR_ELECTRIC,
     render: () => (
       <>
-        <BreathingBlob color="rgba(31,91,214,0.18)" size={340} style={{ top: -120, right: -120 }} />
+        <BreathingBlob color={greenA(0.18)} size={340} style={{ top: -120, right: -120 }} />
         <Grain opacity={0.06} />
         <DataSlide
           tone="electric"
           hero={<ElectricDonutHero electric={d.electricRides} total={d.rides} pct={electricPct} />}
-          label="trajets en vélo électrique"
-          sentence="Quand ça monte, vous passez à l'électrique."
+          label="rides on an e-bike"
+          sentence="When the hills show up, you go electric."
         />
       </>
     ),
@@ -1878,8 +1905,8 @@ const slides = (d, shareUi = {}) => [
 
   // 6 — CO2 SAVED
   {
-    shareFile: "bixi-2026-co2.png",
-    bg: RED,
+    shareFile: "mobi-2026-co2.png",
+    bg: BRAND_RED,
     dark: true,
     render: () => (
       <>
@@ -1888,8 +1915,8 @@ const slides = (d, shareUi = {}) => [
         <DataSlide
           tone="red"
           hero={<Co2TreesHero kg={d.co2Saved} trees={treesEquiv} />}
-          label="de CO₂ économisé"
-          sentence={`L'équivalent de ${treesEquiv} arbres plantés. Chaque trajet compte.`}
+          label="of CO₂ saved"
+          sentence={`That's like planting ${treesEquiv} trees. Every ride counts.`}
         />
       </>
     ),
@@ -1897,7 +1924,7 @@ const slides = (d, shareUi = {}) => [
 
   // 7 — PROFILE IDENTITY
   {
-    shareFile: "bixi-2026-profil.png",
+    shareFile: "mobi-2026-profile.png",
     bg: WHITE,
     dark: false,
     render: () => (
@@ -1910,9 +1937,9 @@ const slides = (d, shareUi = {}) => [
     ),
   },
 
-  // 8 — MERCI
+  // 8 — THANK YOU
   {
-    kind: "merci",
+    kind: "thanks",
     bg: WHITE,
     dark: false,
     autoAdvance: false,
@@ -1924,10 +1951,10 @@ const slides = (d, shareUi = {}) => [
         flexDirection: "column",
         height: "100%",
       }}>
-        <MerciGift
+        <ThanksGift
           opened={shareUi.giftOpened}
           onOpen={shareUi.onOpenGift}
-          onShare={shareUi.onShareFromMerci}
+          onShare={shareUi.onShareFromThanks}
         />
       </div>
     ),
@@ -1947,26 +1974,21 @@ const slides = (d, shareUi = {}) => [
         display: "flex",
         flexDirection: "column",
         gap: 16,
-        background: RED,
+        background: BRAND_RED,
         borderRadius: 24,
         padding: 24,
         color: WHITE,
         boxSizing: "border-box",
       }}>
         <FadeUp {...shareStep(0)}>
-          <BixiLogo width={110} bg={RED} />
+          <MobiLogo width={110} bg={BRAND_RED} />
         </FadeUp>
 
         <FadeUp {...shareStep(1)} style={{ fontFamily: HEAD, fontWeight: 800, fontSize: 32, lineHeight: 1.05, letterSpacing: "-0.02em" }}>
-          Votre saison 2026
+          Your 2026 on Mobi
         </FadeUp>
 
-        <FadeUp {...shareStep(2)} style={{ display: "flex", alignItems: "center", gap: 8, lineHeight: 1 }}>
-          <span style={{ fontFamily: BODY, fontSize: 12, color: "rgba(255,255,255,0.7)", letterSpacing: 0.3 }}>Présenté par</span>
-          <SponsorLogo size={16} color={WHITE} />
-        </FadeUp>
-
-        <FadeUp {...shareStep(3)} style={{ display: "flex" }}>
+        <FadeUp {...shareStep(2)} style={{ display: "flex" }}>
           <span style={{
             fontFamily: HEAD,
             fontWeight: 800,
@@ -1983,19 +2005,19 @@ const slides = (d, shareUi = {}) => [
           </span>
         </FadeUp>
 
-        <FadeUp {...shareStep(4)} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <RecapTile value={d.rides} label="Trajets" />
-          <RecapTile value={d.km} unit="KM" label="Parcourus" />
-          <RecapTile value={Math.round(d.ridingMinutes / 60)} unit="H" label="À vélo" />
-          <RecapTile value={d.co2Saved} unit="KG" label="CO₂ économisé" />
+        <FadeUp {...shareStep(3)} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <RecapTile value={d.rides} label="Rides" />
+          <RecapTile value={d.km} unit="KM" label="Ridden" />
+          <RecapTile value={d.hoursRiding} unit="H" label="On the bike" />
+          <RecapTile value={d.co2Saved} unit="KG" label="CO₂ saved" />
         </FadeUp>
 
-        <FadeUp {...shareStep(5)}>
-          <RecapStationRow station={favoriteStationDisplayLabel(d.favoriteStation)} />
+        <FadeUp {...shareStep(4)}>
+          <RecapStationRow station={d.favoriteStation} />
         </FadeUp>
 
         {/* The exported image swaps the button for a closing strip */}
-        <FadeUp {...shareStep(6)} style={{ marginTop: "auto" }}>
+        <FadeUp {...shareStep(5)} style={{ marginTop: "auto" }}>
           {still ? <ShareClosingStrip /> : (
             <motion.div
               animate={shareUi.pulseShare
@@ -2013,7 +2035,7 @@ const slides = (d, shareUi = {}) => [
               transition={{ delay: 0.6, duration: 1.3, ease: "easeInOut" }}
               style={{ width: "100%", borderRadius: 14 }}
             >
-              <PartagerButton onClick={shareUi.onShare} loading={shareUi.shareLoading} />
+              <ShareRecapButton onClick={shareUi.onShare} loading={shareUi.shareLoading} />
             </motion.div>
           )}
         </FadeUp>
@@ -2026,7 +2048,7 @@ const slides = (d, shareUi = {}) => [
 // Loading screen — wheel draws itself, spins once, messages rotate
 // ---------------------------------------------------------------------------
 const LOADING_MS = 3000;
-const LOADING_MESSAGES = ["On compte vos trajets...", "On retrace votre été...", "On prépare votre surprise..."];
+const LOADING_MESSAGES = ["Counting your rides...", "Retracing your year...", "Preparing your surprise..."];
 const WHEEL_SPOKES = Array.from({ length: 8 }, (_, i) => (i * Math.PI) / 4);
 
 function LoadingScreen() {
@@ -2069,7 +2091,7 @@ function LoadingScreen() {
         transition={{ delay: 1.5, duration: 1, ease: [0.65, 0, 0.35, 1] }}
         style={{ width: 96, height: 96 }}
       >
-        <svg width="96" height="96" viewBox="0 0 100 100" fill="none" stroke={RED} strokeLinecap="round" aria-hidden>
+        <svg width="96" height="96" viewBox="0 0 100 100" fill="none" stroke={BRAND_RED} strokeLinecap="round" aria-hidden>
           <motion.circle cx="50" cy="50" r="42" strokeWidth="6" {...draw(0, 0.9)} />
           {WHEEL_SPOKES.map((a, i) => (
             <motion.line
@@ -2169,7 +2191,7 @@ function StorySlide({ custom, reduced, onTiming, style, children }) {
 
 function StoryProgress({ count, idx, progress, onColoredBg }) {
   const track = onColoredBg ? "rgba(255,255,255,0.35)" : "rgba(10,10,10,0.14)";
-  const fill = onColoredBg ? WHITE : RED;
+  const fill = onColoredBg ? WHITE : BRAND_RED;
   const fillStyle = { height: "100%", background: fill, transformOrigin: "left center", transition: "background-color 0.35s" };
   return (
     <div aria-hidden style={{ position: "absolute", top: 12, left: 24, right: 24, display: "flex", gap: 4, zIndex: 40, pointerEvents: "none" }}>
@@ -2186,10 +2208,11 @@ function StoryProgress({ count, idx, progress, onColoredBg }) {
   );
 }
 
-// Logo + discreet sponsor, sitting below the progress bars.
+// Logo + optional sponsor credit, sitting below the progress bars.
 // Part of each slide's entrance; rendered inside the slide so it leaves with it.
-const StoryHeader = ({ bg, showLogo }) => {
+const StoryHeader = ({ bg, showLogo, sponsor }) => {
   const reduced = useStill();
+  if (!showLogo && !sponsor) return null;
   return (
     <motion.div
       initial={reduced ? false : { opacity: 0, y: ENTRANCE.y }}
@@ -2208,7 +2231,7 @@ const StoryHeader = ({ bg, showLogo }) => {
       }}
     >
       {showLogo && <SlideTopLogo bg={bg} />}
-      <SponsorHeaderCorner bg={bg} />
+      {sponsor && <SponsorHeaderCorner bg={bg} sponsor={sponsor} />}
     </motion.div>
   );
 };
@@ -2222,7 +2245,7 @@ function ShareImageFrame({ slide, frameRef }) {
       <div
         ref={frameRef}
         aria-hidden
-        className="bixi-still"
+        className="recap-still"
         style={{
           position: "fixed",
           left: -10000,
@@ -2241,7 +2264,7 @@ function ShareImageFrame({ slide, frameRef }) {
           <>
             <div style={{ position: "absolute", top: SHARE_IMG_PAD_TOP, left: SHARE_IMG_PAD_X, right: SHARE_IMG_PAD_X, zIndex: 30, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <SlideTopLogo bg={slide.bg} />
-              <SponsorHeaderCorner bg={slide.bg} />
+              {slide.sponsor && <SponsorHeaderCorner bg={slide.bg} sponsor={slide.sponsor} />}
             </div>
             <div style={{ height: innerH - JOIN_STRIP_H - JOIN_STRIP_GAP }}>{slide.render({ still: true })}</div>
             <div style={{ position: "relative", zIndex: 30, marginTop: JOIN_STRIP_GAP }}>
@@ -2320,13 +2343,13 @@ export default function App() {
         } catch (e) {
           if (e?.name === "AbortError") return;
           downloadPngBlob(blob, filename);
-          showToast("Image enregistrée");
+          showToast("Image saved");
         }
         return;
       }
 
       downloadPngBlob(blob, filename);
-      showToast("Image enregistrée");
+      showToast("Image saved");
     } catch (e) {
       console.error(e);
     } finally {
@@ -2341,7 +2364,7 @@ export default function App() {
     shareLoading,
     giftOpened,
     onOpenGift: () => setGiftOpened(true),
-    onShareFromMerci: () => {
+    onShareFromThanks: () => {
       setPulseShare(true);
       goToRef.current(allSlides.length - 1);
     },
@@ -2461,7 +2484,8 @@ export default function App() {
   return (
     <div style={{ minHeight: "100vh", background: "#060606", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Inter:wght@400;500&family=Space+Grotesk:wght@700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;500;700;800;900&display=swap');
+        ${GOTHAM_FACES}
         * { box-sizing:border-box; margin:0; padding:0; }
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes drift {
@@ -2486,7 +2510,7 @@ export default function App() {
           50%      { opacity: 0.4; }
         }
         .story-paused * { animation-play-state: paused !important; }
-        .bixi-still *, .bixi-still *::before, .bixi-still *::after { animation: none !important; transition: none !important; }
+        .recap-still *, .recap-still *::before, .recap-still *::after { animation: none !important; transition: none !important; }
         @media (prefers-reduced-motion: reduce) {
           *, *::before, *::after {
             animation-duration: 0.01ms !important;
@@ -2539,14 +2563,14 @@ export default function App() {
                   style={{
                     position: "absolute",
                     inset: 0,
-                    padding: isLast ? "32px 24px 20px" : current.kind === "merci" ? "36px 24px 20px" : "36px 24px 60px",
+                    padding: isLast ? "32px 24px 20px" : current.kind === "thanks" ? "36px 24px 20px" : "36px 24px 60px",
                     zIndex: 20,
                     overflow: "hidden",
                     background: current.bg,
                   }}
                 >
-                  {/* The share card carries its own logo + sponsor header */}
-                  {!isLast && <StoryHeader bg={current.bg} showLogo={!isFirst} />}
+                  {/* The share card carries its own logo */}
+                  {!isLast && <StoryHeader bg={current.bg} showLogo={!isFirst} sponsor={current.sponsor} />}
                   {current.render()}
                   {current.shareFile && (
                     <EntranceStep
@@ -2570,14 +2594,14 @@ export default function App() {
                   textAlign: "center", pointerEvents: "all",
                 }}
               >
-                <svg width="36" height="36" viewBox="0 0 100 100" fill="none" style={{ animation: "spin 0.85s linear infinite", color: RED }}>
+                <svg width="36" height="36" viewBox="0 0 100 100" fill="none" style={{ animation: "spin 0.85s linear infinite", color: BRAND_RED }}>
                   <circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="10" strokeDasharray="66 200" strokeLinecap="round" />
                 </svg>
-                <span style={{ fontFamily: HEAD, fontWeight: 600, fontSize: 20, color: WHITE, letterSpacing: 0.5, textTransform: "uppercase" }}>
-                  Préparation de votre image…
+                <span style={{ fontFamily: HEAD, fontWeight: 500, fontSize: 20, color: WHITE, letterSpacing: 0.5, textTransform: "uppercase" }}>
+                  Preparing your image…
                 </span>
                 <span style={{ fontFamily: BODY, fontSize: 12, color: "rgba(255,255,255,0.55)", maxWidth: 260, lineHeight: 1.5 }}>
-                  Un instant, on prépare tout pour le partage.
+                  One moment, getting everything ready to share.
                 </span>
               </div>
             )}

@@ -1,6 +1,6 @@
 {
-  "short_name": "BIXI 2026",
-  "name": "Votre saison BIXI 2026",
+  "short_name": "Mobi 2026",
+  "name": "Mobi by Rogers, Your 2026 Recap",
   "icons": [
     {
       "src": "favicon.ico",
@@ -20,6 +20,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#EE3124",
+  "theme_color": "#DA291C",
   "background_color": "#0A0A0A"
 }
